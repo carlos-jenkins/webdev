@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2015 Carlos Jenkins <carlos@jenkins.co.cr>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Development Web Server.
+
+Run me with `webdev [optional_path]`
+"""
+
+from __future__ import unicode_literals, absolute_import
+from __future__ import print_function, division
+
+import logging
+from os import getcwd, chdir
+from os.path import isdir, abspath
+from argparse import ArgumentParser
+from BaseHTTPServer import HTTPServer
+from SimpleHTTPServer import SimpleHTTPRequestHandler
+
+__version__ = '1.0.0'
+
+log = logging.getLogger(__name__)
+
+
+FORMAT = '%(asctime)s:::%(levelname)s:::%(message)s'
+V_LEVELS = {
+    0: logging.ERROR,
+    1: logging.WARNING,
+    2: logging.INFO,
+    3: logging.DEBUG,
+}
+
+
+class HTTPRequestHandler(SimpleHTTPRequestHandler):
+
+    serving_path = None
+    protocol_version = 'HTTP/1.0'
+    server_version = 'DevelopmentServer/' + __version__
+
+    def send_head(self):
+        """
+        Patched version of SimpleHTTPRequestHandler.send_head that allows
+        to reload when source static folder is deleted (and maybe recreated).
+        """
+        try:
+            # Test if path still exists
+            getcwd()
+
+        except OSError:
+
+            log.error('No such directory: {}'.format(
+                HTTPRequestHandler.serving_path)
+            )
+            log.debug('Trying to reload...')
+
+            # Try refresh it
+            try:
+                chdir(HTTPRequestHandler.serving_path)
+                log.debug('Reload successful...')
+            except OSError:
+                log.debug(
+                    'Reloading failed. No such directory: {}'.format(
+                        HTTPRequestHandler.serving_path
+                    )
+                )
+                self.send_error(404, 'File not found')
+                return None
+
+        return SimpleHTTPRequestHandler.send_head(self)
+
+
+def parse_args(argv=None):
+    """
+    Argument parsing routine.
+    """
+    parser = ArgumentParser(
+        description='Development Web Server'
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        help='Increase verbosity level',
+        default=0,
+        action='count'
+    )
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='Development Web Server v{}'.format(__version__)
+    )
+
+    parser.add_argument(
+        '-i', '--ip',
+        help='IP to bind to. Default: 0.0.0.0',
+        default='0.0.0.0'
+    )
+    parser.add_argument(
+        '-p', '--port',
+        help='Port to listen to. Default: 8080.',
+        default=8080,
+        type=int
+    )
+
+    parser.add_argument(
+        'path',
+        help='Path to serve. Default: Current directory.',
+        nargs='?',
+        default=getcwd()
+    )
+
+    args = parser.parse_args(argv)
+
+    # Setup and verify arguments
+    level = V_LEVELS.get(args.verbose, logging.DEBUG)
+    logging.basicConfig(format=FORMAT, level=level)
+    log.debug('Raw arguments:\n{}'.format(args))
+
+    args.path = abspath(args.path)
+    if not isdir(args.path):
+        log.error('Not a directory: {}'.format(args.path))
+        exit(1)
+
+    return args
+
+
+if __name__ == '__main__':
+
+    # Parse arguments
+    args = parse_args()
+
+    # Change to directory
+    chdir(args.path)
+
+    # Create webserver
+    HTTPRequestHandler.serving_path = args.path
+    httpd = HTTPServer((args.ip, args.port), HTTPRequestHandler)
+
+    sa = httpd.socket.getsockname()
+    print('WebDev server at {ip}:{port} serving {path}'.format(
+        ip=sa[0], port=sa[1], path=args.path
+    ))
+    httpd.serve_forever()
