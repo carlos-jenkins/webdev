@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2015 Carlos Jenkins <carlos@jenkins.co.cr>
@@ -27,9 +27,11 @@ from __future__ import print_function, division
 
 import logging
 from os import getcwd, chdir
+from sys import version_info
+from errno import EADDRINUSE
 from os.path import isdir, abspath
 from argparse import ArgumentParser
-from sys import version_info
+from socket import error as socketerror
 
 if version_info[0] < 3:
     from BaseHTTPServer import HTTPServer
@@ -119,6 +121,17 @@ def parse_args(argv=None):
         default=8080,
         type=int
     )
+    parser.add_argument(
+        '-f', '--force-port',
+        help='Force the use of the given port.',
+        action='store_true'
+    )
+    parser.add_argument(
+        '-r', '--range',
+        help='Number of ports to try from the base port',
+        default=20,
+        type=int
+    )
 
     parser.add_argument(
         'path',
@@ -139,6 +152,9 @@ def parse_args(argv=None):
         log.error('Not a directory: {}'.format(args.path))
         exit(1)
 
+    if args.force_port:
+        args.range = 0
+
     return args
 
 
@@ -152,7 +168,23 @@ if __name__ == '__main__':
 
     # Create webserver
     HTTPRequestHandler.serving_path = args.path
-    httpd = HTTPServer((args.ip, args.port), HTTPRequestHandler)
+
+    # Look for available port
+    for retry, port in enumerate(range(args.port, args.port + args.range + 1)):
+        try:
+            httpd = HTTPServer((args.ip, port), HTTPRequestHandler)
+            break
+        except socketerror as e:
+            if e.errno != EADDRINUSE:
+                raise e
+            log.debug('Retry #{} on port {}.'.format(retry, port))
+    else:
+        log.error(
+            'Port(s) {} - {} already in use.'.format(
+                args.port, args.port + args.range
+            )
+        )
+        exit(1)
 
     sa = httpd.socket.getsockname()
     print('WebDev server at {ip}:{port} serving {path}'.format(
