@@ -29,8 +29,13 @@ import logging
 from os import getcwd, chdir
 from os.path import isdir, abspath
 from argparse import ArgumentParser
-from BaseHTTPServer import HTTPServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
+from sys import version_info
+
+if version_info[0] < 3:
+    from BaseHTTPServer import HTTPServer
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
+else:
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 __version__ = '1.0.0'
 
