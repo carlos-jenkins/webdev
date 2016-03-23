@@ -65,28 +65,14 @@ class HTTPRequestHandler(SimpleHTTPRequestHandler):
         to reload when source static folder is deleted (and maybe recreated).
         """
         try:
-            # Test if path still exists
-            getcwd()
-
+            chdir(HTTPRequestHandler.serving_path)
         except OSError:
 
             log.error('No such directory: {}'.format(
-                HTTPRequestHandler.serving_path)
-            )
-            log.debug('Trying to reload...')
-
-            # Try refresh it
-            try:
-                chdir(HTTPRequestHandler.serving_path)
-                log.debug('Reload successful...')
-            except OSError:
-                log.debug(
-                    'Reloading failed. No such directory: {}'.format(
-                        HTTPRequestHandler.serving_path
-                    )
-                )
-                self.send_error(404, 'File not found')
-                return None
+                HTTPRequestHandler.serving_path
+            ))
+            self.send_error(404, 'File not found')
+            return None
 
         return SimpleHTTPRequestHandler.send_head(self)
 
@@ -132,6 +118,11 @@ def parse_args(argv=None):
         default=20,
         type=int
     )
+    parser.add_argument(
+        '-u', '--future',
+        help='Ignore if the folder to server doesn\'t exists yet',
+        action='store_true'
+    )
 
     parser.add_argument(
         'path',
@@ -148,7 +139,7 @@ def parse_args(argv=None):
     log.debug('Raw arguments:\n{}'.format(args))
 
     args.path = abspath(args.path)
-    if not isdir(args.path):
+    if not args.future and not isdir(args.path):
         log.error('Not a directory: {}'.format(args.path))
         exit(1)
 
@@ -164,7 +155,8 @@ if __name__ == '__main__':
     args = parse_args()
 
     # Change to directory
-    chdir(args.path)
+    if not args.future:
+        chdir(args.path)
 
     # Create webserver
     HTTPRequestHandler.serving_path = args.path
