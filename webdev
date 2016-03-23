@@ -158,4 +158,7 @@ if __name__ == '__main__':
     print('WebDev server at {ip}:{port} serving {path}'.format(
         ip=sa[0], port=sa[1], path=args.path
     ))
-    httpd.serve_forever()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print('Good bye!')
