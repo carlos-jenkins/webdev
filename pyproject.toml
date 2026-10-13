@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "webdev"
+version = "2.0.0"
+description = "Small, fast development web server with a modern dark directory index"
+readme = "README.rst"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Carlos Jenkins", email = "carlos@jenkins.co.cr" },
+]
+keywords = ["development", "web", "server", "static", "http", "dev"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+dependencies = [
+    "starlette>=0.37",
+    "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
+    "watchfiles>=0.21",
+    "qrcode>=7.4",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.scripts]
+webdev = "webdev.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/carlos-jenkins/webdev"
+Repository = "https://github.com/carlos-jenkins/webdev"
+
+[tool.hatch.build.targets.wheel]
+packages = ["webdev"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/webdev",
+    "/tests",
+    "/README.rst",
+    "/LICENSE",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4", "SIM"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

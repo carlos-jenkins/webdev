@@ -1,0 +1,52 @@
+(function () {
+  var table = document.getElementById("listing");
+  if (!table) return;
+  var tbody = table.tBodies[0];
+  var headers = table.tHead.rows[0].cells;
+
+  function cellValue(row, key) {
+    if (key === "name") {
+      var link = row.querySelector(".col-name a");
+      return (link ? link.textContent : "").toLowerCase();
+    }
+    if (key === "size") {
+      var s = row.querySelector(".col-size");
+      return parseFloat(s && s.dataset.size != null ? s.dataset.size : -1);
+    }
+    if (key === "date") {
+      var d = row.querySelector(".col-date");
+      return parseFloat(d && d.dataset.time != null ? d.dataset.time : 0);
+    }
+    return "";
+  }
+
+  function sortBy(key, ascending) {
+    var rows = Array.prototype.slice.call(tbody.rows);
+    // Keep the ".." row pinned to the top.
+    var up = rows.filter(function (r) { return r.classList.contains("up"); });
+    var items = rows.filter(function (r) { return !r.classList.contains("up"); });
+    items.sort(function (a, b) {
+      var va = cellValue(a, key), vb = cellValue(b, key);
+      if (va < vb) return ascending ? -1 : 1;
+      if (va > vb) return ascending ? 1 : -1;
+      return 0;
+    });
+    up.concat(items).forEach(function (r) { tbody.appendChild(r); });
+  }
+
+  for (var i = 0; i < headers.length; i++) {
+    (function (th) {
+      var key = th.getAttribute("data-sort");
+      if (!key) return;
+      th.addEventListener("click", function () {
+        var current = th.getAttribute("aria-sort");
+        var ascending = current !== "ascending";
+        for (var j = 0; j < headers.length; j++) {
+          headers[j].removeAttribute("aria-sort");
+        }
+        th.setAttribute("aria-sort", ascending ? "ascending" : "descending");
+        sortBy(key, ascending);
+      });
+    })(headers[i]);
+  }
+})();

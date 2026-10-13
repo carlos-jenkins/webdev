@@ -1,0 +1,71 @@
+{% extends theme ~ "/base.html.jinja2" %}
+
+{% block content %}
+  <header class="head">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      {% for crumb in breadcrumbs %}
+        {% if loop.last %}
+          <span class="crumb current">{{ crumb.name }}</span>
+        {% else %}
+          <a class="crumb" href="{{ crumb.href }}">{{ crumb.name }}</a>
+          <span class="sep">/</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    <p class="meta">{{ n_dirs }} director{{ "y" if n_dirs == 1 else "ies" }},
+      {{ n_files }} file{{ "" if n_files == 1 else "s" }}</p>
+  </header>
+
+  <main>
+    <table class="listing" id="listing">
+      <thead>
+        <tr>
+          <th class="col-name" data-sort="name" aria-sort="ascending">Name</th>
+          <th class="col-size" data-sort="size">Size</th>
+          <th class="col-date" data-sort="date">Modified</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if not is_root %}
+        <tr class="row up">
+          <td class="col-name">
+            <span class="icon icon-up" aria-hidden="true"></span>
+            <a href="../">..</a>
+          </td>
+          <td class="col-size"></td>
+          <td class="col-date"></td>
+        </tr>
+        {% endif %}
+        {% for entry in entries %}
+        <tr class="row {{ 'is-dir' if entry.is_dir else 'is-file' }}">
+          <td class="col-name">
+            <span class="icon icon-{{ entry.icon }}" aria-hidden="true"></span>
+            <a href="{{ entry.href }}">{{ entry.name }}{{ "/" if entry.is_dir }}</a>
+          </td>
+          <td class="col-size" data-size="{{ entry.size if entry.size is not none else -1 }}">
+            {{ entry.size_human }}
+          </td>
+          <td class="col-date" data-time="{{ entry.mtime }}">{{ entry.mtime_human }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if not entries and is_root %}
+      <p class="empty">This directory is empty.</p>
+    {% elif not entries %}
+      <p class="empty">This directory is empty.</p>
+    {% endif %}
+  </main>
+
+  <footer class="foot">
+    <span>webdev{% if version %} <span class="ver">v{{ version }}</span>{% endif %}</span>
+    <span class="dot">&middot;</span>
+    <span>serving {{ served_root }}</span>
+  </footer>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+{% include theme ~ "/partials/sort.js.jinja2" %}
+  </script>
+{% endblock %}
